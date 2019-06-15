@@ -1,0 +1,22 @@
+:global domain "home.example.com"
+:global theinterface "internet-interface"
+:global ipremote [:resolve $domain]
+:global ipfresh [ /ip address get [/ip address find interface=$theinterface ] address ]
+:if ([ :typeof $ipfresh ] != nil ) do={
+   :for i from=( [:len $ipfresh] - 1) to=0 do={ 
+      :if ( [:pick $ipfresh $i] = "/") do={ 
+         :set ipfresh [:pick $ipfresh 0 $i];
+      } 
+   }
+   :if ($ipremote != $ipfresh) do={
+      :local cfmail "MY_CF@MAIL.COM"
+      :local cfapikey "MY_CF_API_KEY"
+      :local cfzoneid "MY_CF_ZONE_ID"
+      :local cfdomainid "MY_CF_DOMAIN_ID"
+      /tool fetch mode=https http-method=put \
+      http-header-field="content-type:application/json,X-Auth-Email:$cfmail,X-Auth-Key:$cfapikey" \
+      url="https://api.cloudflare.com/client/v4/zones/$cfzoneid/dns_records/$cfdomainid" \
+      http-data="{\"type\":\"A\",\"name\":\"$domain\",\"content\":\"$ipfresh\",\"ttl\":1,\"proxied\":false}"
+      :local ipremote $ipfresh
+   }
+}
